@@ -1,116 +1,123 @@
-const express = require("express");
-const bodyparser = require("body-parser");
-
-
+const express = require("express")
+const bodyparser = require("body-parser")
 
 const app = express();
+app.use(bodyparser.json())
+app.use(bodyparser.urlencoded({extended: true}))
 
+const porta = 3000;
+const host = "localhost"
 
-
-//TOLGO L'UGUALE
-app.use  (bodyparser.json())
-app.use  (bodyparser.urlencoded({ extended: true }))
-
-//dichiaro dove trovo le cose 
-
-const port = 3000;
-const host = "localhost";
-
-//creo un oggetto che conterrebbe i nostri dati
-
-let libreria = [
+let elencoLibri = [
     {
-        isbn: "123456",
-        autore: "Maccio Capatonda",
-        titolo: "Libro"        
+        titolo: "pipo",
+        autore: "pipo pipa",
+        isbn: "abc123"
     },
     {
-        isbn: "654123",
-        autore: "Tre semplici passi",
-        titolo: "Fabio Volo"
-        
+        titolo: "pipa",
+        autore: "pipa pipa",
+        isbn: "abc1234"
     },
     {
-        isbn: "987123",
-        autore: "Giorgio Faletti",
-        titolo: "Io uccido"
+        titolo: "pipipipi",
+        autore: "popopo",
+        isbn: "abc12345"
+    },
+    {
+        titolo: "patata",
+        autore: "pata",
+        isbn: "abc123456"
     }
-];
-//verifica dell'avvenuta connessione alla porta e all'host prima dichiarati
+]
 
-app.listen(port, host, () => {
-
-    console.log(`sono in ascolto alla porta ${port} dell' ${host}`);
+app.listen(porta, host, () => {
+    console.log("Sono in ascolto! ")
 })
 
-//se arriva una richista get (da postman) 
-app.get("/biblioteca/lista", (req, res) => {
+// http://localhost:3000/stud/lista
+app.get("/lib/lista", (req, res) => {
+    res.json(elencoLibri);
+})
 
-    res.json(libreria);
+// http://localhost:3000/lib/dettaglio
+// con questo codice andiamo a ricuperare un libro specifico con il isbn passato in ingresso
+app.get("/lib/dettaglio/:isbn", (req, res) => {
+    for(let [idx, item] of elencoLibri.entries()){
+        if(item.isbn == req.params.isbn){
+            res.json(item);
+        }
+    }
+
+    res.json({})
+})
+
+// inserimento
+app.post("/lib/inserisci", (req,res) => {
+
+    let libro = {
+        autore : req.body.aut,
+        titolo : req.body.tit,
+        isbn : req.body.isb
+    }
+        
+            //definisco una booleana come false
+    let bool = false;
+        
+            // se l'oggetto inserito ha un elemento (in questo caso isbn) è gia presente, non lo aggiungo nell'array ma mando messaggio d'errore
+    for (let [idx,item] of elencoLibri.entries()){
+        
+               //se il libro inserito è gia presente, la boolenana diventa true e non aggiunge il libro in array libreria 
+        
+        if (req.body.isb == item.isbn) {
+            bool = true
+            res.json ({Status:"error"})
+        }
+        
+                //se la booleana rimane false, il libro inserito non è presente in libreria e quindi lo aggiunge
+        
+    }
+            
+    if (bool == false) {
+        elencoLibri.push(libro)
+        res.json({status:"success"})
+    } 
 });
 
-app.get("/biblioteca/dettaglio/:isbn", (req,res) => {
-
-    for(let [idx,item] of libreria.entries()) {
-
-        if(res.isbn == req.params.isbn) {
-            res.json(item);
+app.delete("/lib/dettaglio/:isbn", (req, res) => {
+    for(let [idx, item] of elencoLibri.entries()){
+        if(item.isbn == req.params.isbn){
+            elencoLibri.splice(idx, 1)
+            res.json({status: "success"})
         }
     }
 
-    res.json({item});
+    res.json({
+        status: "error", 
+        data: "item_not_found"
+    })
 })
 
 
-//----------------------------------------------------AGGIUNGI LIBRO ----------------------------------------
-
-app.post("/biblioteca/inserisci", (req,res) => {
-
-let libro = {
-            isbn : req.body.isbn,
-            autore : req.body.autore,
-            titolo : req.body.titolo
-        }
-    
-        //definisco una booleana come false
-        let bool = false;
-    
-        // se l'oggetto inserito ha un elemento (in questo caso isbn) è gia presente, non lo aggiungo nell'array ma mando messaggio d'errore
-        for (let [idx,item] of libreria.entries()){
-    
-           //se il libro inserito è gia presente, la boolenana diventa true e non aggiunge il libro in array libreria 
-    
-            if (req.body.isbn == item.isbn) {
-                bool = true
-                res.json ({Status:"error"})
-            }
-    
-            //se la booleana rimane false, il libro inserito non è presente in libreria e quindi lo aggiunge
-    
-        }
-        
-        if (bool == false) {
-            libreria.push(libro)
-            res.json({status:"success"})
-        } 
-    }); 
 
 
-    //  ---------------------------------- ELIMINA LIBRO ---------------------------------
-
-
-    app.delete("biblioteca/dettaglio/:isbn", (req,res) => {
-
-        for (let [idx,item] of libreria.entries()){
+app.put("/lib/dettaglio/:isbn", (req, res) => {
+    for(let [idx, item] of elencoLibri.entries()){
+        if(item.isbn == req.params.isbn){
             
-            if(item.isbn == req.body.isbn) {
-            libreria.splice(idx,1);
-            res.json(item);
-            }
-        }
+            item.titolo = req.body.tit;
+            item.autore = req.body.aut;
 
-        res.json({
-            status:"Errore",
-            data: "Data_Not_Found"
-        })
+            res.json({status: "success"})
+            return;
+        }
+    }
+
+    res.json({
+        status: "error", 
+        data: "item_not_found"
     })
+})
+
+
+
